@@ -1,4 +1,8 @@
 resources:
-  - postgres
-  - rails-app
-  - ingress
+  - postgres/config.yaml
+  - postgres/statefulset.yaml
+  - postgres/service.yaml
+  - rails-app/config.yaml
+  - rails-app/deployment.yaml
+  - rails-app/service.yaml
+  - ingress/ingress.yaml
