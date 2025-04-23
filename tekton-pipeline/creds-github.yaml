@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: git-creds
+  namespace: tekton-pipelines
+  annotations:
+    tekton.dev/git-0: https://github.com
+type: kubernetes.io/basic-auth
+stringData:
+  username: XXXXX
+  email: XXXXXX
+  password: XXXXXXX

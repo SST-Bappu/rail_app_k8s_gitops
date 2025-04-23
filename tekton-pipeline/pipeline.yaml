@@ -1,0 +1,91 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ci-pipe
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: repo-url
+      type: string
+    - name: image-name
+      type: string
+    - name: docker-secret  # Reference to Docker registry secret
+      type: string
+      default: "docker-creds"
+    - name: deployment_file
+      type: string
+      default: "k8s-manifests/rails-app/deployment.yaml"
+    - name: github-secret  # Reference to GitHub secret (if private repo)
+      type: string
+      default: "github-creds"
+    - name: commit_message
+      type: string
+      default: "Tekton: Update image to latest build"
+    - name: infra_repo_url
+      type: string
+      default: "https://github.com/SST-Bappu/rail_app_k8s_gitops.git"
+    
+  workspaces:
+    - name: shared-data  # Shared storage for code/manifests
+    - name: dockerconfig # docker credential
+    - name: git-creds # git credential
+  tasks:
+    # 1. Clone the repo
+    - name: clone-repo
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.repo-url)
+        # If using a private repo, add GitHub credentials
+        - name: ssh-directory
+          value: "/workspace/git-ssh"  # Optional for SSH
+      workspaces:
+        - name: output
+          workspace: shared-data
+      # Uncomment for private repos:
+      # volumes:
+      #   - name: git-ssh
+      #     secret:
+      #       secretName: $(params.github-secret)
+      #       items:
+      #         - key: ssh-privatekey
+      #           path: id_rsa
+    
+    # 2. Build and push the image
+    - name: build-push
+      taskRef:
+        name: kaniko
+      runAfter: ["clone-repo"]
+      params:
+        - name: IMAGE
+          value: $(params.image-name)
+        - name: CACHE
+          value: "true"
+        - name: CACHE_REPO
+          value: $(params.image-name)
+      workspaces:
+        - name: source
+          workspace: shared-data
+        - name: dockerconfig  # For registry auth
+          workspace: dockerconfig
+
+    # 3. Update Kubernetes manifest
+    - name: update-deployment
+      runAfter: ["build-push"]
+      taskRef:
+        name: update-deployment-manifest
+      params:
+        - name: IMAGE
+          value: $(params.image-name)
+        - name: DEPLOYMENT_FILE
+          value: $(params.deployment_file)
+        - name: COMMIT_MESSAGE
+          value: $(params.commit_message)
+        - name: GIT_REPO_URL
+          value: $(params.infra_repo_url)
+      workspaces:
+        - name: source
+          workspace: shared-data
+        - name: git-creds 
+          workspace: git-creds

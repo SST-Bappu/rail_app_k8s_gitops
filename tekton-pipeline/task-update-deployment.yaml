@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: update-deployment-manifest
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: IMAGE
+      type: string
+    - name: DEPLOYMENT_FILE
+      type: string
+    - name: COMMIT_MESSAGE
+      type: string
+      default: "Update image tag"
+    - name: GIT_REPO_URL
+      type: string
+  workspaces:
+    - description: Holds the context and Dockerfile
+      name: source
+    - description: Includes git config
+      mountPath: /git-credentials
+      name: git-creds
+      optional: true
+  steps:
+    - name: update-manifest
+      image: alpine/git
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        echo "Cloning the repo..."
+        git clone $(params.GIT_REPO_URL) k8s/
+        echo "Updating deployment file with new image: $(params.IMAGE)"
+        sed -i "s|image: .*|image: $(params.IMAGE)|" k8s/$(params.DEPLOYMENT_FILE)
+
+    - name: push-to-git
+      image: alpine/git
+      workingDir: $(workspaces.source.path)/k8s
+      script: |
+        #!/bin/sh
+
+        echo "Setting up Git credentials"
+        export GIT_USERNAME=$(cat /git-credentials/username)
+        export GIT_TOKEN=$(cat /git-credentials/password)
+        export GIT_EMAIL=$(cat /git-credentials/email)
+
+        git config --global user.email dummy@example.com
+        git config --global user.name tekton-bot
+
+        git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@$(echo $(params.GIT_REPO_URL) | sed 's|https://||')
+      
+        git add $(params.DEPLOYMENT_FILE)
+        git commit -m "$(params.COMMIT_MESSAGE)"
+        git push origin HEAD:master
+
+
+

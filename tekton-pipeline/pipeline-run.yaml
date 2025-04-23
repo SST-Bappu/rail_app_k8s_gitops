@@ -1,0 +1,39 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: pipe-run
+  namespace: tekton-pipelines
+spec:
+  pipelineRef:
+    name: ci-pipe
+  params:
+    - name: repo-url
+      value: "https://github.com/SST-Bappu/rail-budget-app.git"  # Public or private repo
+    - name: image-name
+      value: "docker.io/sstbappu/rails-budget-app:latest"  
+    - name: docker-secret
+      value: "docker-creds"  # Matches the secret name
+    # - name: github-secret
+    #   value: "github-creds"  # Only for private repos
+
+    # gitops params
+    - name: deployment_file
+      value: "k8s-manifests/rails-app/deployment.yaml"
+    - name: infra_repo_url
+      value: "https://github.com/SST-Bappu/rail_app_k8s_gitops.git"
+    - name: commit_message
+      value: "Tekton: Update image to latest build"
+  workspaces:
+    - name: dockerconfig
+      secret:
+        secretName: docker-creds
+    - name: git-creds
+      secret:
+        secretName: git-creds
+    - name: shared-data
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
