@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-url
+type: Opaque
+stringData:
+  database_url: postgresql://Budgy:password@postgres-0.postgres:5432/Budgy_production

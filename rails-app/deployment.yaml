@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rails-budget-app
+  labels:
+    app: rails-budget-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rails-budget-app
+  template:
+    metadata:
+      labels:
+        app: rails-budget-app
+    spec:
+      containers:
+      - name: rails-budget-app
+        image: sstbappu/rails-budget-app:latest
+        ports:
+        - containerPort: 3000
+        command:
+        - bash 
+        - -c 
+        - "rm -f tmp/pids/server.pid && bundle exec rails db:prepare && rails server -b 0.0.0.0 -p 3000"
+        env:
+        - name: RAILS_ENV
+          value: production
+        - name: SECRET_KEY_BASE
+          value: 3a1de0c0393ceab695fa5687810aedc07b6e34abd11f7e81f1da0ff40285521177c822072454a6639c6d9b6fb15e7945e702b2ce62db6947bbea603c880f6b9f
+        - name: DATABASE_HOST
+          value: postgres
+        - name: DATABASE_NAME
+          value: Budgy_production
+        - name: DATABASE_USER
+          value: Budgy
+        - name: Budgy_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-url
+              key: database_url
