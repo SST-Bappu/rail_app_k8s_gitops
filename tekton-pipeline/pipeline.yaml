@@ -60,10 +60,10 @@ spec:
       params:
         - name: IMAGE
           value: $(params.image-name)
-        - name: CACHE
-          value: "true"
-        - name: CACHE_REPO
-          value: $(params.image-name)
+        # - name: CACHE
+        #   value: "true"
+        # - name: CACHE_REPO
+        #   value: $(params.image-name)
       workspaces:
         - name: source
           workspace: shared-data
