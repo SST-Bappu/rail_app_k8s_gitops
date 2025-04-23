@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rails-gitops-app
+  namespace: argocd  # This should match ArgoCD's namespace
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SST-Bappu/rail_app_k8s_gitops.git
+    targetRevision: HEAD
+    path: k8s-manifests  # Directory inside your repo where YAMLs are
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default  # Or the namespace where your app should be deployed
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
